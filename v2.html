@@ -197,6 +197,8 @@
 @media (prefers-reduced-motion: reduce){ .orb.listening{animation:none} }
 
 .status{min-height:1.3em;color:var(--soft);font-size:clamp(13px,3.6vw,17px);font-weight:600;text-align:center;padding:0 10px}
+.pause-link{background:transparent;border:none;color:var(--soft);font-weight:700;cursor:pointer;font-size:clamp(13px,3.4vw,16px);padding:6px 10px;margin-top:2px}
+.pause-link:active{opacity:.6}
 .feedback{min-height:1.4em;text-align:center;font-size:clamp(16px,4.4vw,22px);font-weight:800;max-width:580px;padding:0 10px}
 .feedback.ok{color:#4e9a68}
 .feedback.try{color:#c98a2f}
@@ -273,12 +275,13 @@
     </div>
 
     <div class="ai-area">
-      <button class="orb speaking" id="micBtn" aria-label="Pausar ou continuar">
+      <button class="orb speaking" id="micBtn" aria-label="Falar agora">
         <span class="orb-ico" id="orbIco">⏳</span>
         <span class="orb-lbl" id="orbLbl">Preparando...</span>
       </button>
       <div class="feedback" id="feedback"></div>
       <div class="status" id="status"></div>
+      <button class="pause-link" id="pauseBtn" type="button">⏸️ Pausar</button>
     </div>
 
     <div class="controls">
@@ -761,6 +764,7 @@ async function openCategory(cat){
     return;
   }
   startWatchdog();
+  updatePauseBtn();
   beginTurn();
 }
 function renderVisual(){
@@ -892,6 +896,7 @@ async function processAudio(){
     const ok=isMatch(heard, it.say);
     setStatus("Você disse: “"+heard+"”");
     const msg=await getFeedback(ok, it.word||it.say, heard);
+    processing=false; /* terminou de avaliar — libera o vigia para religar a escuta */
     if(!sessionActive||paused) return;
     if(ok){
       setFeedback("✅ "+msg,"ok"); sprinkleStars(); setMic("speaking","🎉","Muito bem!");
@@ -925,16 +930,28 @@ function doPause(){
   speechSynthesis.cancel();
   setMic("paused","▶️","Continuar"); setStatus("⏸️ Pausado");
 }
-async function toggleSession(){
+const pauseBtn=document.getElementById("pauseBtn");
+function updatePauseBtn(){ if(pauseBtn) pauseBtn.textContent = paused ? "▶️ Continuar" : "⏸️ Pausar"; }
+
+/* botão GRANDE = "Falar agora" (nunca pausa) */
+async function forceListen(){
   if(!sessionActive){
     sessionActive=true; paused=false;
     if(finished){ finished=false; idx=0; renderVisual(); }
     const ok=await ensureAudio();
-    if(!ok){ setFeedback("Preciso da permissão do microfone 🎤","warn"); paused=true; setMic("paused","🎤","Tocar aqui"); sessionActive=true; return; }
-    startWatchdog(); beginTurn(); return;
+    if(!ok){ setFeedback("Autorize o microfone para começar 🎤","warn"); paused=true; setMic("paused","🎤","Tocar aqui"); updatePauseBtn(); return; }
+    startWatchdog(); updatePauseBtn(); beginTurn(); return;
   }
-  if(paused){ paused=false; if(audioCtx&&audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} } startWatchdog(); beginTurn(); }
-  else doPause();
+  if(paused){ paused=false; if(audioCtx&&audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} } startWatchdog(); updatePauseBtn(); beginTurn(); return; }
+  /* já ativo: começa a ouvir agora mesmo */
+  speechSynthesis.cancel(); stopListeningSilently(); processing=false; wantListen=true; startListening();
+}
+
+/* Pausar/Continuar (botão pequeno, para o adulto) */
+async function togglePause(){
+  if(!sessionActive){ forceListen(); return; }
+  if(paused){ paused=false; if(audioCtx&&audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} } startWatchdog(); updatePauseBtn(); beginTurn(); }
+  else { doPause(); updatePauseBtn(); }
 }
 
 /* ---------- CARTÃO: tocar para ouvir a palavra ---------- */
@@ -1037,12 +1054,13 @@ cardEl.addEventListener("click", sayCurrent);
 cardEl.addEventListener("keydown", e=>{ if(e.key==="Enter") sayCurrent(); });
 prevBtn.addEventListener("click", ()=>go(-1));
 nextBtn.addEventListener("click", ()=>go(1));
-micBtn.addEventListener("click", toggleSession);
+micBtn.addEventListener("click", forceListen);
+if(pauseBtn) pauseBtn.addEventListener("click", togglePause);
 document.addEventListener("keydown", e=>{
   if(gameEl.classList.contains("hidden")) return;
   if(e.key==="ArrowRight") go(1);
   if(e.key==="ArrowLeft") go(-1);
-  if(e.key===" "){ e.preventDefault(); toggleSession(); }
+  if(e.key===" "){ e.preventDefault(); forceListen(); }
   if(e.key==="Escape") goHome();
 });
 
