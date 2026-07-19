@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#eaf4f4" />
+<title>Aprender a Falar — Jogo Interativo</title>
+<style>
+  :root{
+    --bg:#eaf4f4;
+    --card:#ffffff;
+    --ink:#2d3a4a;
+    --soft:#6b7c8c;
+    --accent:#7bb5b0;      /* verde-água calmo */
+    --accent-2:#f6c177;    /* amarelo suave */
+    --accent-3:#c8a2d6;    /* lilás suave */
+    --accent-4:#f2a9a0;    /* coral suave */
+    --ok:#8ec19b;
+    --shadow:0 8px 24px rgba(45,58,74,.10);
+    --radius:26px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+    touch-action:manipulation;
+  }
+  .screen{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;
+    padding:clamp(16px,4vw,32px);
+    animation:fade .35s ease;
+  }
+  .hidden{display:none!important}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ---------- MENU ---------- */
+  .title{
+    text-align:center;margin:8px 0 4px;
+    font-size:clamp(26px,6vw,44px);font-weight:800;letter-spacing:.5px;
+  }
+  .subtitle{text-align:center;color:var(--soft);font-size:clamp(15px,3.6vw,20px);margin-bottom:clamp(18px,4vw,34px)}
+  .menu-grid{
+    flex:1;display:grid;gap:clamp(14px,3vw,22px);
+    grid-template-columns:repeat(2,1fr);
+    align-content:center;max-width:820px;width:100%;margin:0 auto;
+  }
+  .menu-card{
+    background:var(--card);border:none;border-radius:var(--radius);
+    box-shadow:var(--shadow);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    padding:clamp(18px,5vw,40px) 12px;
+    transition:transform .12s ease;
+    min-height:clamp(130px,26vw,190px);
+  }
+  .menu-card:active{transform:scale(.95)}
+  .menu-emoji{font-size:clamp(46px,11vw,72px);line-height:1}
+  .menu-label{font-size:clamp(18px,4.4vw,26px);font-weight:700}
+  .menu-card.c1{border-bottom:8px solid var(--accent)}
+  .menu-card.c2{border-bottom:8px solid var(--accent-2)}
+  .menu-card.c3{border-bottom:8px solid var(--accent-3)}
+  .menu-card.c4{border-bottom:8px solid var(--accent-4)}
+
+  /* ---------- JOGO ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .icon-btn{
+    background:var(--card);border:none;border-radius:20px;box-shadow:var(--shadow);
+    width:clamp(52px,13vw,64px);height:clamp(52px,13vw,64px);
+    font-size:clamp(24px,6vw,30px);cursor:pointer;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;transition:transform .12s;
+  }
+  .icon-btn:active{transform:scale(.9)}
+  .cat-name{font-weight:800;font-size:clamp(18px,4.6vw,26px)}
+  .progress{color:var(--soft);font-size:clamp(13px,3.4vw,17px);font-weight:600}
+
+  .stage{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,3vw,22px);
+    min-height:0;
+  }
+  .card{
+    background:var(--card);border-radius:36px;box-shadow:var(--shadow);
+    width:min(88vw,520px);
+    aspect-ratio:1/.92;max-height:52vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    cursor:pointer;transition:transform .12s ease;border:6px solid transparent;
+    position:relative;overflow:hidden;
+  }
+  .card:active{transform:scale(.97)}
+  .card.pop{animation:pop .45s ease}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+  .card-emoji{font-size:clamp(90px,30vw,190px);line-height:1}
+  .card-text{font-size:clamp(60px,20vw,140px);font-weight:800;line-height:1;color:var(--ink)}
+  .card-word{font-size:clamp(30px,8vw,54px);font-weight:800;color:var(--ink);margin-top:2px}
+  .tap-hint{color:var(--soft);font-size:clamp(14px,3.6vw,18px);font-weight:600}
+
+  .controls{display:flex;align-items:center;justify-content:center;gap:clamp(14px,4vw,26px);width:100%}
+  .nav-btn{
+    background:var(--card);border:none;border-radius:26px;box-shadow:var(--shadow);
+    width:clamp(64px,16vw,84px);height:clamp(64px,16vw,84px);
+    font-size:clamp(28px,7vw,40px);cursor:pointer;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;transition:transform .12s;
+  }
+  .nav-btn:active{transform:scale(.9)}
+  .nav-btn:disabled{opacity:.35;cursor:default}
+  .listen-btn{
+    background:var(--accent);color:#fff;border:none;border-radius:30px;box-shadow:var(--shadow);
+    padding:clamp(16px,4vw,22px) clamp(24px,7vw,44px);
+    font-size:clamp(18px,4.6vw,24px);font-weight:800;cursor:pointer;
+    display:flex;align-items:center;gap:10px;transition:transform .12s;
+  }
+  .listen-btn:active{transform:scale(.93)}
+
+  /* ---------- ESTRELINHAS ---------- */
+  .star{position:fixed;font-size:34px;pointer-events:none;z-index:50;animation:rise 1s ease forwards}
+  @keyframes rise{
+    0%{opacity:1;transform:translateY(0) scale(.6) rotate(0)}
+    100%{opacity:0;transform:translateY(-140px) scale(1.4) rotate(40deg)}
+  }
+  .footer-note{text-align:center;color:var(--soft);font-size:12px;padding-top:10px}
+</style>
+</head>
+<body>
+
+<!-- ====== MENU ====== -->
+<section id="menu" class="screen">
+  <h1 class="title">🌟 Vamos Aprender a Falar 🌟</h1>
+  <p class="subtitle">Toque em um botão para começar</p>
+  <div class="menu-grid">
+    <button class="menu-card c1" data-cat="vogais">
+      <span class="menu-emoji">🅰️</span><span class="menu-label">Vogais</span>
+    </button>
+    <button class="menu-card c2" data-cat="letras">
+      <span class="menu-emoji">🔤</span><span class="menu-label">Letras</span>
+    </button>
+    <button class="menu-card c3" data-cat="numeros">
+      <span class="menu-emoji">🔢</span><span class="menu-label">Números</span>
+    </button>
+    <button class="menu-card c4" data-cat="palavras">
+      <span class="menu-emoji">🐶</span><span class="menu-label">Palavras</span>
+    </button>
+  </div>
+  <p class="footer-note">Feito com carinho 💛 — o áudio usa a voz do seu aparelho</p>
+</section>
+
+<!-- ====== JOGO ====== -->
+<section id="game" class="screen hidden">
+  <div class="topbar">
+    <button class="icon-btn" id="homeBtn" aria-label="Voltar ao menu">🏠</button>
+    <span class="cat-name" id="catName">Vogais</span>
+    <span class="progress" id="progress">1 / 5</span>
+  </div>
+
+  <div class="stage">
+    <div class="card" id="card" role="button" tabindex="0">
+      <div class="card-emoji" id="cardEmoji"></div>
+      <div class="card-text" id="cardText"></div>
+      <div class="card-word" id="cardWord"></div>
+      <div class="tap-hint">👆 toque para ouvir</div>
+    </div>
+
+    <div class="controls">
+      <button class="nav-btn" id="prevBtn" aria-label="Anterior">◀️</button>
+      <button class="listen-btn" id="listenBtn">🔊 Ouvir</button>
+      <button class="nav-btn" id="nextBtn" aria-label="Próximo">▶️</button>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ============================================================
+   CONTEÚDO DO JOGO
+   ============================================================ */
+const DATA = {
+  vogais: {
+    name:"Vogais",
+    items:[
+      {text:"A", say:"A", emoji:"✈️"},
+      {text:"E", say:"É", emoji:"🐘"},
+      {text:"I", say:"I", emoji:"🍦"},
+      {text:"O", say:"Ó", emoji:"🥚"},
+      {text:"U", say:"U", emoji:"🍇"},
+    ]
+  },
+  letras: {
+    name:"Letras",
+    items:"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l=>({text:l, say:l, emoji:""}))
+  },
+  numeros: {
+    name:"Números",
+    items:[
+      {text:"0", say:"zero", emoji:"🫧"},
+      {text:"1", say:"um", emoji:"☝️"},
+      {text:"2", say:"dois", emoji:"✌️"},
+      {text:"3", say:"três", emoji:"🐤🐤🐤"},
+      {text:"4", say:"quatro", emoji:"🐾"},
+      {text:"5", say:"cinco", emoji:"🖐️"},
+      {text:"6", say:"seis", emoji:"🌼"},
+      {text:"7", say:"sete", emoji:"🌈"},
+      {text:"8", say:"oito", emoji:"🕸️"},
+      {text:"9", say:"nove", emoji:"🎈"},
+      {text:"10", say:"dez", emoji:"🔟"},
+    ]
+  },
+  palavras: {
+    name:"Palavras",
+    items:[
+      {text:"", word:"Mamãe",   say:"mamãe",   emoji:"👩"},
+      {text:"", word:"Papai",   say:"papai",   emoji:"👨"},
+      {text:"", word:"Vovó",    say:"vovó",    emoji:"👵"},
+      {text:"", word:"Bebê",    say:"bebê",    emoji:"👶"},
+      {text:"", word:"Água",    say:"água",    emoji:"💧"},
+      {text:"", word:"Leite",   say:"leite",   emoji:"🥛"},
+      {text:"", word:"Pão",     say:"pão",     emoji:"🍞"},
+      {text:"", word:"Maçã",    say:"maçã",    emoji:"🍎"},
+      {text:"", word:"Banana",  say:"banana",  emoji:"🍌"},
+      {text:"", word:"Bola",    say:"bola",    emoji:"⚽"},
+      {text:"", word:"Cachorro",say:"cachorro",emoji:"🐶"},
+      {text:"", word:"Gato",    say:"gato",    emoji:"🐱"},
+      {text:"", word:"Casa",    say:"casa",    emoji:"🏠"},
+      {text:"", word:"Carro",   say:"carro",   emoji:"🚗"},
+      {text:"", word:"Sol",     say:"sol",     emoji:"☀️"},
+      {text:"", word:"Lua",     say:"lua",     emoji:"🌙"},
+      {text:"", word:"Flor",    say:"flor",    emoji:"🌸"},
+      {text:"", word:"Peixe",   say:"peixe",   emoji:"🐟"},
+      {text:"", word:"Olá",     say:"olá",     emoji:"👋"},
+      {text:"", word:"Amo você",say:"amo você",emoji:"❤️"},
+    ]
+  }
+};
+
+/* ============================================================
+   ÁUDIO (voz do aparelho, em português)
+   ============================================================ */
+let ptVoice = null;
+function pickVoice(){
+  const voices = speechSynthesis.getVoices();
+  ptVoice =
+    voices.find(v=>/pt[-_]BR/i.test(v.lang)) ||
+    voices.find(v=>/^pt/i.test(v.lang)) ||
+    null;
+}
+pickVoice();
+if(typeof speechSynthesis!=="undefined"){
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+function speak(txt){
+  if(!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang = "pt-BR";
+  if(ptVoice) u.voice = ptVoice;
+  u.rate = 0.85;   // um pouco mais devagar, ajuda na repetição
+  u.pitch = 1.05;
+  speechSynthesis.speak(u);
+}
+
+/* ============================================================
+   NAVEGAÇÃO
+   ============================================================ */
+const menuEl   = document.getElementById("menu");
+const gameEl   = document.getElementById("game");
+const catNameEl= document.getElementById("catName");
+const progEl   = document.getElementById("progress");
+const cardEl   = document.getElementById("card");
+const emojiEl  = document.getElementById("cardEmoji");
+const textEl   = document.getElementById("cardText");
+const wordEl   = document.getElementById("cardWord");
+const prevBtn  = document.getElementById("prevBtn");
+const nextBtn  = document.getElementById("nextBtn");
+
+let current = null; // {items, name}
+let idx = 0;
+
+function openCategory(cat){
+  current = DATA[cat];
+  idx = 0;
+  catNameEl.textContent = current.name;
+  menuEl.classList.add("hidden");
+  gameEl.classList.remove("hidden");
+  render(true);
+}
+
+function render(autoSpeak){
+  const it = current.items[idx];
+  emojiEl.textContent = it.emoji || "";
+  emojiEl.style.display = it.emoji ? "block" : "none";
+  textEl.textContent = it.text || "";
+  textEl.style.display = it.text ? "block" : "none";
+  wordEl.textContent = it.word || "";
+  wordEl.style.display = it.word ? "block" : "none";
+  progEl.textContent = (idx+1) + " / " + current.items.length;
+  prevBtn.disabled = idx===0;
+  nextBtn.disabled = idx===current.items.length-1;
+  if(autoSpeak) speak(it.say);
+}
+
+function sayCurrent(){
+  const it = current.items[idx];
+  speak(it.say);
+  cardEl.classList.remove("pop");
+  void cardEl.offsetWidth; // reinicia animação
+  cardEl.classList.add("pop");
+  sprinkleStars();
+}
+
+function go(delta){
+  const n = idx + delta;
+  if(n<0 || n>=current.items.length) return;
+  idx = n;
+  render(true);
+}
+
+function goHome(){
+  speechSynthesis.cancel();
+  gameEl.classList.add("hidden");
+  menuEl.classList.remove("hidden");
+}
+
+/* estrelinhas de recompensa */
+function sprinkleStars(){
+  const rect = cardEl.getBoundingClientRect();
+  const emojis = ["⭐","🌟","✨","💫"];
+  for(let i=0;i<6;i++){
+    const s = document.createElement("div");
+    s.className = "star";
+    s.textContent = emojis[i%emojis.length];
+    s.style.left = (rect.left + Math.random()*rect.width) + "px";
+    s.style.top  = (rect.top + rect.height*0.35 + Math.random()*rect.height*0.3) + "px";
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(), 1000);
+  }
+}
+
+/* eventos */
+document.querySelectorAll(".menu-card").forEach(b=>{
+  b.addEventListener("click", ()=>openCategory(b.dataset.cat));
+});
+document.getElementById("homeBtn").addEventListener("click", goHome);
+document.getElementById("listenBtn").addEventListener("click", sayCurrent);
+cardEl.addEventListener("click", sayCurrent);
+cardEl.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") sayCurrent(); });
+prevBtn.addEventListener("click", ()=>go(-1));
+nextBtn.addEventListener("click", ()=>go(1));
+
+/* teclado (setas) para quem usa no computador */
+document.addEventListener("keydown", e=>{
+  if(gameEl.classList.contains("hidden")) return;
+  if(e.key==="ArrowRight") go(1);
+  if(e.key==="ArrowLeft") go(-1);
+  if(e.key==="Escape") goHome();
+});
+</script>
+</body>
+</html>
