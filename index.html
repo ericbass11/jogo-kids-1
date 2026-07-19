@@ -128,8 +128,8 @@
 
 <!-- ====== MENU ====== -->
 <section id="menu" class="screen">
-  <h1 class="title">🌟 Vamos Aprender a Falar 🌟</h1>
-  <p class="subtitle">Toque em um botão para começar</p>
+  <h1 class="title">🌟 Olá, Melina! 🌟</h1>
+  <p class="subtitle">Vamos aprender a falar — toque em um botão para começar</p>
   <div class="menu-grid">
     <button class="menu-card c1" data-cat="vogais">
       <span class="menu-emoji">🅰️</span><span class="menu-label">Vogais</span>
@@ -209,6 +209,7 @@ const DATA = {
   palavras: {
     name:"Palavras",
     items:[
+      {text:"", word:"Melina",  say:"Melina",  emoji:"👧"},
       {text:"", word:"Mamãe",   say:"mamãe",   emoji:"👩"},
       {text:"", word:"Papai",   say:"papai",   emoji:"👨"},
       {text:"", word:"Vovó",    say:"vovó",    emoji:"👵"},
@@ -282,7 +283,14 @@ function openCategory(cat){
   catNameEl.textContent = current.name;
   menuEl.classList.add("hidden");
   gameEl.classList.remove("hidden");
-  render(true);
+  // saudação falada só na primeira vez que abre um módulo na sessão
+  if(!openCategory.greeted){
+    openCategory.greeted = true;
+    speak("Olá, Melina! Vamos brincar!");
+    setTimeout(()=>render(true), 1600);
+  } else {
+    render(true);
+  }
 }
 
 function render(autoSpeak){
