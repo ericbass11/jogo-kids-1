@@ -44,12 +44,26 @@
     text-align:center;margin:8px 0 4px;
     font-size:clamp(26px,6vw,44px);font-weight:800;letter-spacing:.5px;
   }
-  .subtitle{text-align:center;color:var(--soft);font-size:clamp(15px,3.6vw,20px);margin-bottom:clamp(18px,4vw,34px)}
+  .subtitle{text-align:center;color:var(--soft);font-size:clamp(14px,3.6vw,20px);margin-bottom:clamp(12px,3vw,22px)}
+  /* menu rola por inteiro — evita cortar os primeiros itens em telas pequenas */
+  #menu{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .name-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+    max-width:820px;width:100%;margin:0 auto clamp(14px,3.5vw,24px);
+  }
+  .name-row label{font-size:clamp(14px,3.6vw,18px);font-weight:700;color:var(--soft)}
+  .name-row input{
+    flex:1;min-width:180px;max-width:340px;
+    font-size:clamp(16px,4.4vw,20px);font-weight:700;color:var(--ink);
+    padding:12px 16px;border:2px solid #d7e6e6;border-radius:18px;
+    background:var(--card);box-shadow:var(--shadow);outline:none;
+  }
+  .name-row input:focus{border-color:var(--accent)}
   .menu-grid{
-    flex:1;display:grid;gap:clamp(12px,2.6vw,20px);
-    grid-template-columns:repeat(2,1fr);
-    align-content:center;max-width:820px;width:100%;margin:0 auto;
-    overflow-y:auto;padding:4px;
+    display:grid;gap:clamp(12px,2.6vw,20px);
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    align-content:start;max-width:820px;width:100%;margin:0 auto;
+    padding:4px 4px clamp(16px,5vw,32px);
   }
   .menu-card{
     background:var(--card);border:none;border-radius:var(--radius);
@@ -68,7 +82,17 @@
   .menu-card.c4{border-bottom:8px solid var(--accent-4)}
 
   /* ---------- JOGO ---------- */
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .topbar-center{display:flex;flex-direction:column;align-items:center;line-height:1.2;min-width:0}
+  .speed-btn{
+    background:var(--card);border:none;border-radius:20px;box-shadow:var(--shadow);
+    min-height:clamp(52px,13vw,64px);padding:0 clamp(10px,3vw,16px);
+    cursor:pointer;color:var(--ink);transition:transform .12s;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  }
+  .speed-btn:active{transform:scale(.9)}
+  .speed-btn .ico{font-size:clamp(22px,5.5vw,28px);line-height:1}
+  .speed-btn .lbl{font-size:clamp(10px,2.6vw,12px);font-weight:700;color:var(--soft)}
   .icon-btn{
     background:var(--card);border:none;border-radius:20px;box-shadow:var(--shadow);
     width:clamp(52px,13vw,64px);height:clamp(52px,13vw,64px);
@@ -129,8 +153,12 @@
 
 <!-- ====== MENU ====== -->
 <section id="menu" class="screen">
-  <h1 class="title">🌟 Olá, Melina! 🌟</h1>
-  <p class="subtitle">Vamos aprender a falar — toque em um botão para começar</p>
+  <h1 class="title" id="menuTitle">🌟 Vamos Aprender a Falar 🌟</h1>
+  <p class="subtitle">Toque em um botão para começar</p>
+  <div class="name-row">
+    <label for="nameInput">👧 Nome da criança:</label>
+    <input id="nameInput" type="text" placeholder="Digite o nome" autocomplete="off" maxlength="20" />
+  </div>
   <div class="menu-grid">
     <button class="menu-card c1" data-cat="vogais">
       <span class="menu-emoji">🅰️</span><span class="menu-label">Vogais</span>
@@ -173,8 +201,13 @@
 <section id="game" class="screen hidden">
   <div class="topbar">
     <button class="icon-btn" id="homeBtn" aria-label="Voltar ao menu">🏠</button>
-    <span class="cat-name" id="catName">Vogais</span>
-    <span class="progress" id="progress">1 / 5</span>
+    <div class="topbar-center">
+      <span class="cat-name" id="catName">Vogais</span>
+      <span class="progress" id="progress">1 / 5</span>
+    </div>
+    <button class="speed-btn" id="speedBtn" aria-label="Velocidade da voz">
+      <span class="ico" id="speedIco">🐢</span><span class="lbl" id="speedLbl">Devagar</span>
+    </button>
   </div>
 
   <div class="stage">
@@ -236,11 +269,11 @@ const DATA = {
   palavras: {
     name:"Palavras",
     items:[
-      {text:"", word:"Melina",  say:"Melina",  emoji:"👧"},
+      {text:"", word:"Bebê",    say:"bebê",    emoji:"👶"},
       {text:"", word:"Mamãe",   say:"mamãe",   emoji:"👩"},
       {text:"", word:"Papai",   say:"papai",   emoji:"👨"},
       {text:"", word:"Vovó",    say:"vovó",    emoji:"👵"},
-      {text:"", word:"Bebê",    say:"bebê",    emoji:"👶"},
+      {text:"", word:"Vovô",    say:"vovô",    emoji:"👴"},
       {text:"", word:"Água",    say:"água",    emoji:"💧"},
       {text:"", word:"Leite",   say:"leite",   emoji:"🥛"},
       {text:"", word:"Pão",     say:"pão",     emoji:"🍞"},
@@ -420,13 +453,23 @@ pickVoice();
 if(typeof speechSynthesis!=="undefined"){
   speechSynthesis.onvoiceschanged = pickVoice;
 }
+/* velocidades da voz (ajustável pelo botão 🐢/🐇) */
+const SPEEDS = [
+  {rate:0.5,  ico:"🐢", lbl:"Bem devagar"},
+  {rate:0.6,  ico:"🐢", lbl:"Devagar"},
+  {rate:0.8,  ico:"🚶", lbl:"Médio"},
+  {rate:1.0,  ico:"🐇", lbl:"Rápido"},
+];
+let speedIdx = parseInt(localStorage.getItem("jogo_velocidade"), 10);
+if(isNaN(speedIdx) || speedIdx<0 || speedIdx>=SPEEDS.length) speedIdx = 1; // "Devagar"
+
 function speak(txt, cb){
   if(!("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(txt);
   u.lang = "pt-BR";
   if(ptVoice) u.voice = ptVoice;
-  u.rate = 0.6;    // bem devagar, ajuda a criança a acompanhar e repetir
+  u.rate = SPEEDS[speedIdx].rate;
   u.pitch = 1.05;
   if(typeof cb === "function") u.onend = cb;
   speechSynthesis.speak(u);
@@ -449,6 +492,44 @@ const nextBtn  = document.getElementById("nextBtn");
 let current = null; // {items, name}
 let idx = 0;
 
+/* ---------- NOME DA CRIANÇA ---------- */
+const menuTitleEl = document.getElementById("menuTitle");
+const nameInput   = document.getElementById("nameInput");
+let childName = (localStorage.getItem("jogo_nome") || "").trim();
+
+function applyName(name){
+  childName = (name || "").trim();
+  localStorage.setItem("jogo_nome", childName);
+  // título do menu
+  menuTitleEl.textContent = childName
+    ? ("🌟 Olá, " + childName + "! 🌟")
+    : "🌟 Vamos Aprender a Falar 🌟";
+  // primeira palavra do módulo "Palavras" = nome da criança (ou "Bebê")
+  DATA.palavras.items[0] = childName
+    ? {text:"", word:childName, say:childName, emoji:"👧"}
+    : {text:"", word:"Bebê", say:"bebê", emoji:"👶"};
+}
+nameInput.value = childName;
+applyName(childName);
+nameInput.addEventListener("input", ()=>applyName(nameInput.value));
+
+/* ---------- VELOCIDADE ---------- */
+const speedBtn = document.getElementById("speedBtn");
+const speedIco = document.getElementById("speedIco");
+const speedLbl = document.getElementById("speedLbl");
+
+function applySpeed(){
+  speedIco.textContent = SPEEDS[speedIdx].ico;
+  speedLbl.textContent = SPEEDS[speedIdx].lbl;
+}
+applySpeed();
+speedBtn.addEventListener("click", ()=>{
+  speedIdx = (speedIdx + 1) % SPEEDS.length;
+  localStorage.setItem("jogo_velocidade", speedIdx);
+  applySpeed();
+  if(current) speak(current.items[idx].say); // demonstra a nova velocidade
+});
+
 function openCategory(cat){
   current = DATA[cat];
   idx = 0;
@@ -459,7 +540,8 @@ function openCategory(cat){
   if(!openCategory.greeted){
     openCategory.greeted = true;
     render(false);
-    speak("Olá, Melina! Vamos brincar!", ()=>{ if(current) speak(current.items[0].say); });
+    const oi = childName ? ("Olá, " + childName + "! Vamos brincar!") : "Olá! Vamos brincar!";
+    speak(oi, ()=>{ if(current) speak(current.items[0].say); });
   } else {
     render(true);
   }
