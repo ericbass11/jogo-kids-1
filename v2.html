@@ -773,9 +773,10 @@ function endSessionCleanup(){
 }
 
 /* ---------- CICLO: FALAR -> ESCUTAR -> RESPONDER ---------- */
+let noSpeechCount=0;
 function beginTurn(){
   clearInterval(vadTimer); speechSynthesis.cancel();
-  setFeedback(""); setStatus("");
+  setFeedback(""); setStatus(""); noSpeechCount=0;
   if(!sessionActive||paused) return;
   const it=current.items[idx];
   setMic("speaking","🗣️","Ouça...");
@@ -801,27 +802,38 @@ async function startListening(){
   runVad();
 }
 
+/* sensibilidade da escuta (ajuste fácil aqui) */
+const VAD = {
+  CAL_MS: 300,      /* tempo de calibração do ruído (curto p/ não pegar a voz da criança) */
+  SIL_MS: 900,      /* silêncio para considerar que terminou de falar */
+  NOSPEECH_MS: 9000,/* tempo até desistir de esperar a fala */
+  MINSP_MS: 250,    /* fala mínima válida */
+  MAXSP_MS: 6000,   /* gravação máxima após começar a falar */
+  FLOOR_MAX: 0.03,  /* teto do ruído de fundo estimado */
+  ONSET_MIN: 0.014, /* limiar mínimo p/ "começou a falar" (bem sensível) */
+  ONSET_K: 1.5, ONSET_B: 0.005,
+  ONGOING_MIN: 0.009, ONGOING_K: 1.25, ONGOING_B: 0.003
+};
 function runVad(){
   const start=Date.now();
-  let calibSum=0, calibN=0, floor=0.02;
+  let calibSum=0, calibN=0, floor=0.015;
   let inSpeech=false, lastVoice=0, speechStart=0;
-  const CAL_MS=500, SIL_MS=1000, NOSPEECH_MS=8000, MINSP_MS=350, MAXSP_MS=6000;
   clearInterval(vadTimer);
   vadTimer=setInterval(()=>{
     if(!listening){ clearInterval(vadTimer); return; }
     const now=Date.now(), lv=micLevel();
-    if(now-start<CAL_MS){ calibSum+=lv; calibN++; return; }
-    if(calibN>0){ floor=calibSum/calibN; calibN=0; }
-    const onset=Math.max(0.03, floor*2.2+0.012);
-    const ongoing=Math.max(0.02, floor*1.6+0.006);
+    if(now-start<VAD.CAL_MS){ calibSum+=Math.min(lv,0.05); calibN++; return; } /* ignora picos na calibração */
+    if(calibN>0){ floor=Math.min(calibSum/calibN, VAD.FLOOR_MAX); calibN=0; }
+    const onset=Math.max(VAD.ONSET_MIN, floor*VAD.ONSET_K+VAD.ONSET_B);
+    const ongoing=Math.max(VAD.ONGOING_MIN, floor*VAD.ONGOING_K+VAD.ONGOING_B);
     if(!inSpeech){
       if(lv>onset){ inSpeech=true; speechStart=now; lastVoice=now; setStatus("🎙️ Ouvindo você..."); }
-      else if(now-start>NOSPEECH_MS){ endListening(false); }
+      else if(now-start>VAD.NOSPEECH_MS){ endListening(false); }
     }else{
       if(lv>ongoing) lastVoice=now;
-      if((now-lastVoice>SIL_MS && now-speechStart>MINSP_MS) || (now-speechStart>MAXSP_MS)){ endListening(true); }
+      if((now-lastVoice>VAD.SIL_MS && now-speechStart>VAD.MINSP_MS) || (now-speechStart>VAD.MAXSP_MS)){ endListening(true); }
     }
-  }, 60);
+  }, 50);
 }
 function endListening(process){
   if(!listening) return;
@@ -835,9 +847,16 @@ function stopListeningSilently(){
 }
 function afterNoSpeech(){
   if(!sessionActive||paused) return;
+  noSpeechCount++;
   const it=current.items[idx];
-  setMic("speaking","🗣️","Vamos tentar!");
-  speakThen("Vamos tentar? Diga: "+it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
+  if(noSpeechCount<2){
+    /* volta a ouvir em silêncio, sem reperguntar (menos repetitivo) */
+    startListening();
+  }else{
+    noSpeechCount=0;
+    setMic("speaking","🗣️","Vamos tentar!");
+    speakThen("Vamos tentar? Diga: "+it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
+  }
 }
 
 async function processAudio(){
@@ -848,6 +867,7 @@ async function processAudio(){
     const it=current.items[idx];
     const heard=await transcribe(blob, it.say, type);
     if(!heard){ afterNoSpeech(); return; }
+    noSpeechCount=0;
     const ok=isMatch(heard, it.say);
     setStatus("Você disse: “"+heard+"”");
     const msg=await getFeedback(ok, it.word||it.say, heard);
