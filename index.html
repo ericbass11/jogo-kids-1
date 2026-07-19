@@ -59,6 +59,18 @@
     background:var(--card);box-shadow:var(--shadow);outline:none;
   }
   .name-row input:focus{border-color:var(--accent)}
+  .name-row select{
+    flex:1;min-width:180px;max-width:340px;
+    font-size:clamp(15px,4vw,18px);font-weight:700;color:var(--ink);
+    padding:12px 14px;border:2px solid #d7e6e6;border-radius:18px;
+    background:var(--card);box-shadow:var(--shadow);outline:none;cursor:pointer;
+  }
+  .name-row select:focus{border-color:var(--accent)}
+  .voice-test{
+    background:var(--accent);color:#fff;border:none;border-radius:18px;box-shadow:var(--shadow);
+    padding:12px 16px;font-size:clamp(14px,3.6vw,16px);font-weight:800;cursor:pointer;transition:transform .12s;
+  }
+  .voice-test:active{transform:scale(.93)}
   .menu-grid{
     display:grid;gap:clamp(12px,2.6vw,20px);
     grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
@@ -159,6 +171,11 @@
     <label for="nameInput">👧 Nome da criança:</label>
     <input id="nameInput" type="text" placeholder="Digite o nome" autocomplete="off" maxlength="20" />
   </div>
+  <div class="name-row">
+    <label for="voiceSelect">🗣️ Voz:</label>
+    <select id="voiceSelect"><option>Voz padrão</option></select>
+    <button class="voice-test" id="voiceTest" type="button">🔊 Testar</button>
+  </div>
   <div class="menu-grid">
     <button class="menu-card c1" data-cat="vogais">
       <span class="menu-emoji">🅰️</span><span class="menu-label">Vogais</span>
@@ -192,6 +209,9 @@
     </button>
     <button class="menu-card c3" data-cat="roupas">
       <span class="menu-emoji">👕</span><span class="menu-label">Roupas</span>
+    </button>
+    <button class="menu-card c4" data-cat="formas">
+      <span class="menu-emoji">🔷</span><span class="menu-label">Formas</span>
     </button>
   </div>
   <p class="footer-note">Feito com carinho 💛 — o áudio usa a voz do seu aparelho</p>
@@ -289,6 +309,27 @@ const DATA = {
       {text:"", word:"Flor",    say:"flor",    emoji:"🌸"},
       {text:"", word:"Peixe",   say:"peixe",   emoji:"🐟"},
       {text:"", word:"Olá",     say:"olá",     emoji:"👋"},
+      {text:"", word:"Tchau",   say:"tchau",   emoji:"👋"},
+      {text:"", word:"Sim",     say:"sim",     emoji:"👍"},
+      {text:"", word:"Não",     say:"não",     emoji:"👎"},
+      {text:"", word:"Quero",   say:"quero",   emoji:"🙋"},
+      {text:"", word:"Obrigado",say:"obrigado",emoji:"🙏"},
+      {text:"", word:"Por favor",say:"por favor",emoji:"🤲"},
+      {text:"", word:"Comer",   say:"comer",   emoji:"🍽️"},
+      {text:"", word:"Beber",   say:"beber",   emoji:"🥤"},
+      {text:"", word:"Dormir",  say:"dormir",  emoji:"😴"},
+      {text:"", word:"Brincar", say:"brincar", emoji:"🧸"},
+      {text:"", word:"Banho",   say:"banho",   emoji:"🛁"},
+      {text:"", word:"Xixi",    say:"xixi",    emoji:"🚽"},
+      {text:"", word:"Feliz",   say:"feliz",   emoji:"😊"},
+      {text:"", word:"Triste",  say:"triste",  emoji:"😢"},
+      {text:"", word:"Abraço",  say:"abraço",  emoji:"🤗"},
+      {text:"", word:"Beijo",   say:"beijo",   emoji:"😘"},
+      {text:"", word:"Mamadeira",say:"mamadeira",emoji:"🍼"},
+      {text:"", word:"Escola",  say:"escola",  emoji:"🏫"},
+      {text:"", word:"Amigo",   say:"amigo",   emoji:"🧒"},
+      {text:"", word:"Livro",   say:"livro",   emoji:"📚"},
+      {text:"", word:"Música",  say:"música",  emoji:"🎵"},
       {text:"", word:"Amo você",say:"amo você",emoji:"❤️"},
     ]
   },
@@ -315,6 +356,28 @@ const DATA = {
       {text:"", word:"Borboleta",say:"borboleta",emoji:"🦋"},
       {text:"", word:"Abelha",   say:"abelha",   emoji:"🐝"},
       {text:"", word:"Sapo",     say:"sapo",     emoji:"🐸"},
+      {text:"", word:"Rato",     say:"rato",     emoji:"🐭"},
+      {text:"", word:"Cobra",    say:"cobra",    emoji:"🐍"},
+      {text:"", word:"Zebra",    say:"zebra",    emoji:"🦓"},
+      {text:"", word:"Tigre",    say:"tigre",    emoji:"🐯"},
+      {text:"", word:"Panda",    say:"panda",    emoji:"🐼"},
+      {text:"", word:"Coala",    say:"coala",    emoji:"🐨"},
+      {text:"", word:"Raposa",   say:"raposa",   emoji:"🦊"},
+      {text:"", word:"Lobo",     say:"lobo",     emoji:"🐺"},
+      {text:"", word:"Pinguim",  say:"pinguim",  emoji:"🐧"},
+      {text:"", word:"Coruja",   say:"coruja",   emoji:"🦉"},
+      {text:"", word:"Cavalo-marinho",say:"cavalo-marinho",emoji:"🐴"},
+      {text:"", word:"Golfinho", say:"golfinho", emoji:"🐬"},
+      {text:"", word:"Baleia",   say:"baleia",   emoji:"🐳"},
+      {text:"", word:"Tubarão",  say:"tubarão",  emoji:"🦈"},
+      {text:"", word:"Polvo",    say:"polvo",    emoji:"🐙"},
+      {text:"", word:"Caranguejo",say:"caranguejo",emoji:"🦀"},
+      {text:"", word:"Aranha",   say:"aranha",   emoji:"🕷️"},
+      {text:"", word:"Caracol",  say:"caracol",  emoji:"🐌"},
+      {text:"", word:"Formiga",  say:"formiga",  emoji:"🐜"},
+      {text:"", word:"Joaninha", say:"joaninha", emoji:"🐞"},
+      {text:"", word:"Dinossauro",say:"dinossauro",emoji:"🦕"},
+      {text:"", word:"Jacaré",   say:"jacaré",   emoji:"🐊"},
     ]
   },
   frutas: {
@@ -357,6 +420,24 @@ const DATA = {
       {text:"", word:"Chocolate", say:"chocolate", emoji:"🍫"},
       {text:"", word:"Mel",       say:"mel",       emoji:"🍯"},
       {text:"", word:"Sopa",      say:"sopa",      emoji:"🍲"},
+      {text:"", word:"Iogurte",   say:"iogurte",   emoji:"🍶"},
+      {text:"", word:"Manteiga",  say:"manteiga",  emoji:"🧈"},
+      {text:"", word:"Bolacha",   say:"bolacha",   emoji:"🍘"},
+      {text:"", word:"Cachorro-quente",say:"cachorro-quente",emoji:"🌭"},
+      {text:"", word:"Hambúrguer",say:"hambúrguer",emoji:"🍔"},
+      {text:"", word:"Batata frita",say:"batata frita",emoji:"🍟"},
+      {text:"", word:"Pipoca",    say:"pipoca",    emoji:"🍿"},
+      {text:"", word:"Salada",    say:"salada",    emoji:"🥗"},
+      {text:"", word:"Peixe",     say:"peixe",     emoji:"🐟"},
+      {text:"", word:"Frango",    say:"frango",    emoji:"🍗"},
+      {text:"", word:"Carne",     say:"carne",     emoji:"🥩"},
+      {text:"", word:"Sanduíche", say:"sanduíche", emoji:"🥪"},
+      {text:"", word:"Panqueca",  say:"panqueca",  emoji:"🥞"},
+      {text:"", word:"Café",      say:"café",      emoji:"☕"},
+      {text:"", word:"Chá",       say:"chá",       emoji:"🍵"},
+      {text:"", word:"Doce",      say:"doce",      emoji:"🍬"},
+      {text:"", word:"Pirulito",  say:"pirulito",  emoji:"🍭"},
+      {text:"", word:"Rosquinha", say:"rosquinha", emoji:"🍩"},
     ]
   },
   casa: {
@@ -435,20 +516,64 @@ const DATA = {
       {text:"", word:"Luva",     say:"luva",     emoji:"🧤"},
       {text:"", word:"Óculos",   say:"óculos",   emoji:"👓"},
     ]
+  },
+  formas: {
+    name:"Formas",
+    items:[
+      {text:"", word:"Círculo",   say:"círculo",   emoji:"⭕"},
+      {text:"", word:"Quadrado",  say:"quadrado",  emoji:"🟦"},
+      {text:"", word:"Triângulo", say:"triângulo", emoji:"🔺"},
+      {text:"", word:"Retângulo", say:"retângulo", emoji:"▬"},
+      {text:"", word:"Estrela",   say:"estrela",   emoji:"⭐"},
+      {text:"", word:"Coração",   say:"coração",   emoji:"❤️"},
+      {text:"", word:"Losango",   say:"losango",   emoji:"🔷"},
+      {text:"", word:"Oval",      say:"oval",      emoji:"🥚"},
+    ]
   }
 };
 
 /* ============================================================
    ÁUDIO (voz do aparelho, em português)
    ============================================================ */
-let ptVoice = null;
+let ptVoice = null;                 // voz padrão (fallback)
+let availableVoices = [];           // vozes oferecidas no seletor
+let selectedVoiceName = localStorage.getItem("jogo_voz") || "";
+const voiceSelect = document.getElementById("voiceSelect");
+
 function pickVoice(){
   const voices = speechSynthesis.getVoices();
-  ptVoice =
-    voices.find(v=>/pt[-_]BR/i.test(v.lang)) ||
-    voices.find(v=>/^pt/i.test(v.lang)) ||
-    null;
+  // prioriza vozes em português; se não houver, oferece todas
+  const pt = voices.filter(v=>/^pt/i.test(v.lang));
+  availableVoices = pt.length ? pt : voices;
+  ptVoice = voices.find(v=>/pt[-_]BR/i.test(v.lang)) ||
+            voices.find(v=>/^pt/i.test(v.lang)) || null;
+  populateVoiceSelect();
 }
+
+function populateVoiceSelect(){
+  if(!voiceSelect) return;
+  if(!availableVoices.length){
+    voiceSelect.innerHTML = "<option>Voz padrão do aparelho</option>";
+    return;
+  }
+  voiceSelect.innerHTML = "";
+  availableVoices.forEach(v=>{
+    const o = document.createElement("option");
+    o.value = v.name;
+    o.textContent = v.name + (/pt[-_]BR/i.test(v.lang) ? "" : " ("+v.lang+")");
+    voiceSelect.appendChild(o);
+  });
+  if(selectedVoiceName && availableVoices.some(v=>v.name===selectedVoiceName)){
+    voiceSelect.value = selectedVoiceName;
+  } else {
+    selectedVoiceName = voiceSelect.value; // usa a primeira da lista
+  }
+}
+
+function currentVoice(){
+  return availableVoices.find(v=>v.name===selectedVoiceName) || ptVoice;
+}
+
 pickVoice();
 if(typeof speechSynthesis!=="undefined"){
   speechSynthesis.onvoiceschanged = pickVoice;
@@ -467,8 +592,9 @@ function speak(txt, cb){
   if(!("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(txt);
-  u.lang = "pt-BR";
-  if(ptVoice) u.voice = ptVoice;
+  const v = currentVoice();
+  u.lang = (v && v.lang) || "pt-BR";
+  if(v) u.voice = v;
   u.rate = SPEEDS[speedIdx].rate;
   u.pitch = 1.05;
   if(typeof cb === "function") u.onend = cb;
@@ -602,6 +728,20 @@ function sprinkleStars(){
 document.querySelectorAll(".menu-card").forEach(b=>{
   b.addEventListener("click", ()=>openCategory(b.dataset.cat));
 });
+if(voiceSelect){
+  voiceSelect.addEventListener("change", ()=>{
+    selectedVoiceName = voiceSelect.value;
+    localStorage.setItem("jogo_voz", selectedVoiceName);
+    speak("Olá! Essa é a minha voz."); // demonstra a voz escolhida
+  });
+}
+const voiceTestBtn = document.getElementById("voiceTest");
+if(voiceTestBtn){
+  voiceTestBtn.addEventListener("click", ()=>{
+    const oi = childName ? ("Olá, " + childName + "!") : "Olá!";
+    speak(oi + " Vamos aprender a falar.");
+  });
+}
 document.getElementById("homeBtn").addEventListener("click", goHome);
 document.getElementById("listenBtn").addEventListener("click", sayCurrent);
 cardEl.addEventListener("click", sayCurrent);
