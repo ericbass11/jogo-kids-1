@@ -247,6 +247,10 @@
 </section>
 
 <script>
+/* armazenamento seguro (não trava se o navegador bloquear o localStorage) */
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
 /* ============================================================
    CONTEÚDO DO JOGO
    ============================================================ */
@@ -537,7 +541,7 @@ const DATA = {
    ============================================================ */
 let ptVoice = null;                 // voz padrão (fallback)
 let availableVoices = [];           // vozes oferecidas no seletor
-let selectedVoiceName = localStorage.getItem("jogo_voz") || "";
+let selectedVoiceName = lsGet("jogo_voz") || "";
 const voiceSelect = document.getElementById("voiceSelect");
 
 function pickVoice(){
@@ -585,7 +589,7 @@ const SPEEDS = [
   {rate:0.8,  ico:"🚶", lbl:"Médio"},
   {rate:1.0,  ico:"🐇", lbl:"Rápido"},
 ];
-let speedIdx = parseInt(localStorage.getItem("jogo_velocidade"), 10);
+let speedIdx = parseInt(lsGet("jogo_velocidade"), 10);
 if(isNaN(speedIdx) || speedIdx<0 || speedIdx>=SPEEDS.length) speedIdx = 1; // "Devagar"
 
 function speak(txt, cb){
@@ -621,11 +625,11 @@ let idx = 0;
 /* ---------- NOME DA CRIANÇA ---------- */
 const menuTitleEl = document.getElementById("menuTitle");
 const nameInput   = document.getElementById("nameInput");
-let childName = (localStorage.getItem("jogo_nome") || "").trim();
+let childName = (lsGet("jogo_nome") || "").trim();
 
 function applyName(name){
   childName = (name || "").trim();
-  localStorage.setItem("jogo_nome", childName);
+  lsSet("jogo_nome", childName);
   // título do menu
   menuTitleEl.textContent = childName
     ? ("🌟 Olá, " + childName + "! 🌟")
@@ -651,7 +655,7 @@ function applySpeed(){
 applySpeed();
 speedBtn.addEventListener("click", ()=>{
   speedIdx = (speedIdx + 1) % SPEEDS.length;
-  localStorage.setItem("jogo_velocidade", speedIdx);
+  lsSet("jogo_velocidade", speedIdx);
   applySpeed();
   if(current) speak(current.items[idx].say); // demonstra a nova velocidade
 });
@@ -731,7 +735,7 @@ document.querySelectorAll(".menu-card").forEach(b=>{
 if(voiceSelect){
   voiceSelect.addEventListener("change", ()=>{
     selectedVoiceName = voiceSelect.value;
-    localStorage.setItem("jogo_voz", selectedVoiceName);
+    lsSet("jogo_voz", selectedVoiceName);
     speak("Olá! Essa é a minha voz."); // demonstra a voz escolhida
   });
 }
