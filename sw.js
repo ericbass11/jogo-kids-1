@@ -1,8 +1,9 @@
 /* Service worker — deixa o jogo funcionar offline (app instalável) */
-const CACHE = "aprender-falar-v1";
+const CACHE = "aprender-falar-v2";
 const ASSETS = [
   "./",
   "./index.html",
+  "./v2.html",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
