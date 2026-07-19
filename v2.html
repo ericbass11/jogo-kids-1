@@ -173,33 +173,40 @@
 .back-link:active{opacity:.6}
 
 .ai-area{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,2vw,12px);width:100%}
-.status{min-height:1.3em;color:var(--soft);font-size:clamp(14px,3.8vw,18px);font-weight:600;text-align:center;padding:0 10px}
-.mic-btn{
-  background:var(--accent-4);color:#fff;border:none;border-radius:30px;
-  box-shadow:0 10px 26px rgba(242,169,160,.5);cursor:pointer;
-  display:flex;align-items:center;gap:10px;
-  padding:clamp(14px,4vw,20px) clamp(28px,8vw,52px);transition:transform .12s;
-}
-.mic-btn:active{transform:scale(.94)}
-.mic-btn .mic-ico{font-size:clamp(26px,6.5vw,34px);line-height:1}
-.mic-btn .mic-lbl{font-size:clamp(18px,4.6vw,24px);font-weight:800}
-.mic-btn.rec{background:#e5786e;animation:pulse 1.1s ease-in-out infinite}
-@keyframes pulse{
-  0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(229,120,110,.55)}
-  50%{transform:scale(1.05);box-shadow:0 0 0 20px rgba(229,120,110,0)}
-}
-@media (prefers-reduced-motion: reduce){ .mic-btn.rec{animation:none} }
 
+/* botão-orbe: mostra o estado e serve para pausar/continuar */
+.orb{
+  border:none;border-radius:28px;color:#fff;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  padding:clamp(14px,3.5vw,22px) clamp(28px,9vw,60px);
+  min-width:clamp(190px,62vw,320px);
+  box-shadow:0 10px 26px rgba(45,58,74,.18);
+  transition:transform .12s, background .25s;
+}
+.orb:active{transform:scale(.96)}
+.orb-ico{font-size:clamp(32px,8.5vw,46px);line-height:1}
+.orb-lbl{font-size:clamp(16px,4.4vw,22px);font-weight:800}
+.orb.speaking{background:var(--accent)}
+.orb.thinking{background:var(--accent-2);color:#5a4a22}
+.orb.paused{background:var(--accent-4)}
+.orb.listening{background:#5bbf8a;animation:orbpulse 1.2s ease-in-out infinite}
+@keyframes orbpulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(91,191,138,.55)}
+  50%{box-shadow:0 0 0 22px rgba(91,191,138,0)}
+}
+@media (prefers-reduced-motion: reduce){ .orb.listening{animation:none} }
+
+.status{min-height:1.3em;color:var(--soft);font-size:clamp(13px,3.6vw,17px);font-weight:600;text-align:center;padding:0 10px}
 .feedback{min-height:1.4em;text-align:center;font-size:clamp(16px,4.4vw,22px);font-weight:800;max-width:580px;padding:0 10px}
 .feedback.ok{color:#4e9a68}
 .feedback.try{color:#c98a2f}
 .feedback.warn{color:#c9605a}
 
-/* cartão um pouco menor no Modo IA para caber o microfone */
-#game .card{max-height:34vh}
-#game .card-emoji{font-size:clamp(66px,20vw,120px)}
-#game .card-text{font-size:clamp(48px,15vw,104px)}
-#game .card-word{font-size:clamp(24px,6.5vw,42px)}
+/* cartão menor no Modo IA para caber o orbe */
+#game .card{max-height:30vh}
+#game .card-emoji{font-size:clamp(60px,18vw,110px)}
+#game .card-text{font-size:clamp(44px,14vw,96px)}
+#game .card-word{font-size:clamp(24px,6.2vw,40px)}
 #game .stage{gap:clamp(8px,2.2vw,16px)}
 
 </style>
@@ -209,7 +216,7 @@
 <!-- ====== MENU ====== -->
 <section id="menu" class="screen">
   <h1 class="title" id="menuTitle">🤖 Modo IA — Aprender a Falar</h1>
-  <p class="subtitle">A IA ouve a criança, corrige com carinho e conversa</p>
+  <p class="subtitle">A IA fala, escuta sozinha e responde — sem apertar botões</p>
 
   <div class="name-row">
     <label for="nameInput">👧 Nome da criança:</label>
@@ -266,11 +273,12 @@
     </div>
 
     <div class="ai-area">
-      <div class="status" id="status"></div>
-      <button class="mic-btn" id="micBtn" aria-label="Falar no microfone">
-        <span class="mic-ico">🎤</span><span class="mic-lbl">Falar</span>
+      <button class="orb speaking" id="micBtn" aria-label="Pausar ou continuar">
+        <span class="orb-ico" id="orbIco">⏳</span>
+        <span class="orb-lbl" id="orbLbl">Preparando...</span>
       </button>
       <div class="feedback" id="feedback"></div>
+      <div class="status" id="status"></div>
     </div>
 
     <div class="controls">
@@ -564,7 +572,7 @@ const DATA = {
 };
 
 /* ============================================================
-   MODO IA (v2) — voz do aparelho + OpenAI para ouvir/avaliar
+   MODO IA (v2) — automático: fala, escuta sozinha e responde
    ============================================================ */
 
 /* armazenamento seguro */
@@ -626,6 +634,13 @@ function speak(txt, cb){
   if(typeof cb==="function") u.onend=cb;
   speechSynthesis.speak(u);
 }
+/* fala e chama cb ao terminar — com rede de segurança caso onend não dispare */
+function speakThen(txt, cb){
+  let done=false; const once=()=>{ if(done)return; done=true; if(cb)cb(); };
+  speak(txt, once);
+  const est=Math.max(1600, (txt.length*95)/SPEEDS[speedIdx].rate);
+  setTimeout(once, est+1400);
+}
 
 /* ---------- ELEMENTOS ---------- */
 const menuEl=document.getElementById("menu");
@@ -639,6 +654,8 @@ const wordEl=document.getElementById("cardWord");
 const prevBtn=document.getElementById("prevBtn");
 const nextBtn=document.getElementById("nextBtn");
 const micBtn=document.getElementById("micBtn");
+const orbIco=document.getElementById("orbIco");
+const orbLbl=document.getElementById("orbLbl");
 const statusEl=document.getElementById("status");
 const feedbackEl=document.getElementById("feedback");
 const keyInput=document.getElementById("keyInput");
@@ -676,15 +693,62 @@ speedBtn.addEventListener("click", ()=>{
   if(current) speak(current.items[idx].say);
 });
 
-/* ---------- NAVEGAÇÃO ---------- */
+/* ---------- ESTADO ---------- */
 let current=null, idx=0;
-function openCategory(cat){
-  current=DATA[cat]; idx=0;
+let sessionActive=false, paused=false, finished=false;
+let listening=false, processing=false, suppress=false, pendingProcess=false;
+let audioStream=null, audioCtx=null, analyser=null, vadBuf=null, vadTimer=null;
+let mediaRecorder=null, chunks=[];
+
+function setStatus(t){ statusEl.textContent=t||""; }
+function setFeedback(t, cls){ feedbackEl.textContent=t||""; feedbackEl.className="feedback"+(cls?(" "+cls):""); }
+function setMic(state, ico, lbl){ micBtn.className="orb "+state; orbIco.textContent=ico; orbLbl.textContent=lbl; }
+
+/* ---------- ÁUDIO / MICROFONE ---------- */
+async function ensureAudio(){
+  if(audioStream && audioCtx){ if(audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} } return true; }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) return false;
+  try{
+    audioStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    const AC=window.AudioContext||window.webkitAudioContext;
+    audioCtx=new AC();
+    if(audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} }
+    const src=audioCtx.createMediaStreamSource(audioStream);
+    analyser=audioCtx.createAnalyser(); analyser.fftSize=1024;
+    src.connect(analyser);
+    vadBuf=new Uint8Array(analyser.fftSize);
+    return true;
+  }catch(e){ return false; }
+}
+function micLevel(){
+  analyser.getByteTimeDomainData(vadBuf);
+  let s=0; for(let i=0;i<vadBuf.length;i++){ const v=(vadBuf[i]-128)/128; s+=v*v; }
+  return Math.sqrt(s/vadBuf.length);
+}
+function releaseAudio(){
+  if(audioStream){ audioStream.getTracks().forEach(t=>t.stop()); audioStream=null; }
+  if(audioCtx){ try{ audioCtx.close(); }catch(e){} audioCtx=null; }
+  analyser=null; vadBuf=null;
+}
+
+/* ---------- NAVEGAÇÃO / VISUAL ---------- */
+async function openCategory(cat){
+  current=DATA[cat]; idx=0; finished=false; paused=false;
   catNameEl.textContent=current.name;
   menuEl.classList.add("hidden"); gameEl.classList.remove("hidden");
-  render(true);
+  renderVisual();
+  sessionActive=true;
+  setMic("speaking","⏳","Preparando...");
+  const ok=await ensureAudio();
+  if(!ok){
+    paused=true;
+    setMic("paused","🎤","Tocar aqui");
+    setFeedback("Autorize o microfone e toque no botão para começar 🎤","warn");
+    return;
+  }
+  beginTurn();
 }
-function render(auto){
+function renderVisual(){
   const it=current.items[idx];
   emojiEl.textContent=it.emoji||""; emojiEl.style.display=it.emoji?"block":"none";
   textEl.textContent=it.text||""; textEl.style.display=it.text?"block":"none";
@@ -692,19 +756,152 @@ function render(auto){
   progEl.textContent=(idx+1)+" / "+current.items.length;
   prevBtn.disabled=idx===0; nextBtn.disabled=idx===current.items.length-1;
   setStatus(""); setFeedback("");
-  if(auto) promptSay();
 }
-function promptSay(){ const it=current.items[idx]; speak("Diga: "+it.say); }
+function go(d){
+  const n=idx+d; if(n<0||n>=current.items.length) return;
+  stopListeningSilently();
+  idx=n; finished=false; renderVisual();
+  if(sessionActive && !paused) beginTurn();
+  else setMic("paused","▶️","Continuar");
+}
+function goHome(){ endSessionCleanup(); releaseAudio(); gameEl.classList.add("hidden"); menuEl.classList.remove("hidden"); }
+function endSessionCleanup(){
+  sessionActive=false; listening=false; processing=false;
+  clearInterval(vadTimer);
+  try{ if(mediaRecorder && mediaRecorder.state!=="inactive"){ suppress=true; mediaRecorder.stop(); } }catch(e){}
+  speechSynthesis.cancel();
+}
+
+/* ---------- CICLO: FALAR -> ESCUTAR -> RESPONDER ---------- */
+function beginTurn(){
+  clearInterval(vadTimer); speechSynthesis.cancel();
+  setFeedback(""); setStatus("");
+  if(!sessionActive||paused) return;
+  const it=current.items[idx];
+  setMic("speaking","🗣️","Ouça...");
+  speakThen("Diga: "+it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
+}
+
+async function startListening(){
+  if(!sessionActive||paused) return;
+  if(!apiKey){ setFeedback("Adicione sua chave da OpenAI no menu 🔑","warn"); doPause(); return; }
+  const ok=await ensureAudio();
+  if(!ok){ setFeedback("Preciso da permissão do microfone 🎤","warn"); doPause(); return; }
+  chunks=[]; suppress=false; pendingProcess=false; processing=false; listening=true;
+  try{ mediaRecorder=new MediaRecorder(audioStream); }
+  catch(e){ setFeedback("Microfone indisponível neste navegador.","warn"); doPause(); return; }
+  mediaRecorder.ondataavailable=e=>{ if(e.data&&e.data.size>0) chunks.push(e.data); };
+  mediaRecorder.onstop=()=>{
+    if(suppress){ suppress=false; return; }
+    if(pendingProcess) processAudio(); else afterNoSpeech();
+  };
+  try{ mediaRecorder.start(); }catch(e){ setFeedback("Não consegui gravar.","warn"); doPause(); return; }
+  setMic("listening","🎧","Pode falar!");
+  setStatus("Estou te ouvindo...");
+  runVad();
+}
+
+function runVad(){
+  const start=Date.now();
+  let calibSum=0, calibN=0, floor=0.02;
+  let inSpeech=false, lastVoice=0, speechStart=0;
+  const CAL_MS=500, SIL_MS=1000, NOSPEECH_MS=8000, MINSP_MS=350, MAXSP_MS=6000;
+  clearInterval(vadTimer);
+  vadTimer=setInterval(()=>{
+    if(!listening){ clearInterval(vadTimer); return; }
+    const now=Date.now(), lv=micLevel();
+    if(now-start<CAL_MS){ calibSum+=lv; calibN++; return; }
+    if(calibN>0){ floor=calibSum/calibN; calibN=0; }
+    const onset=Math.max(0.03, floor*2.2+0.012);
+    const ongoing=Math.max(0.02, floor*1.6+0.006);
+    if(!inSpeech){
+      if(lv>onset){ inSpeech=true; speechStart=now; lastVoice=now; setStatus("🎙️ Ouvindo você..."); }
+      else if(now-start>NOSPEECH_MS){ endListening(false); }
+    }else{
+      if(lv>ongoing) lastVoice=now;
+      if((now-lastVoice>SIL_MS && now-speechStart>MINSP_MS) || (now-speechStart>MAXSP_MS)){ endListening(true); }
+    }
+  }, 60);
+}
+function endListening(process){
+  if(!listening) return;
+  listening=false; pendingProcess=process; clearInterval(vadTimer);
+  if(process){ processing=true; setMic("thinking","🧠","Pensando..."); setStatus(""); }
+  try{ mediaRecorder.stop(); }catch(e){ if(process) processAudio(); else afterNoSpeech(); }
+}
+function stopListeningSilently(){
+  clearInterval(vadTimer);
+  if(listening){ listening=false; suppress=true; try{ mediaRecorder.stop(); }catch(e){} }
+}
+function afterNoSpeech(){
+  if(!sessionActive||paused) return;
+  const it=current.items[idx];
+  setMic("speaking","🗣️","Vamos tentar!");
+  speakThen("Vamos tentar? Diga: "+it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
+}
+
+async function processAudio(){
+  try{
+    const type=(mediaRecorder&&mediaRecorder.mimeType)||"audio/webm";
+    const blob=new Blob(chunks,{type});
+    if(blob.size<1200){ afterNoSpeech(); return; }
+    const it=current.items[idx];
+    const heard=await transcribe(blob, it.say, type);
+    if(!heard){ afterNoSpeech(); return; }
+    const ok=isMatch(heard, it.say);
+    setStatus("Você disse: “"+heard+"”");
+    const msg=await getFeedback(ok, it.word||it.say, heard);
+    if(!sessionActive||paused) return;
+    if(ok){
+      setFeedback("✅ "+msg,"ok"); sprinkleStars(); setMic("speaking","🎉","Muito bem!");
+      speakThen(msg, ()=>{
+        if(!sessionActive||paused) return;
+        if(idx<current.items.length-1){ idx++; renderVisual(); beginTurn(); }
+        else finishCategory();
+      });
+    }else{
+      setFeedback("💪 "+msg,"try"); setMic("speaking","🗣️","Escuta...");
+      speakThen(msg, ()=>{ speakThen(it.say, ()=>{ if(sessionActive&&!paused) startListening(); }); });
+    }
+  }catch(err){
+    setStatus("");
+    setFeedback("⚠️ "+((err&&err.message)||"Algo deu errado."),"warn");
+    paused=true; setMic("paused","▶️","Continuar"); /* não trava: é só tocar para seguir */
+  }
+}
+function finishCategory(){
+  finished=true; sessionActive=false;
+  setMic("paused","🏆","Jogar de novo");
+  setFeedback("🎉 Você terminou! Muito bem!","ok"); setStatus("");
+  speak(childName?("Muito bem, "+childName+"! Você conseguiu!"):"Muito bem! Você conseguiu!");
+}
+
+/* ---------- PAUSAR / CONTINUAR (botão grande) ---------- */
+function doPause(){
+  paused=true; listening=false; clearInterval(vadTimer);
+  try{ if(mediaRecorder && mediaRecorder.state!=="inactive"){ suppress=true; mediaRecorder.stop(); } }catch(e){}
+  speechSynthesis.cancel();
+  setMic("paused","▶️","Continuar"); setStatus("⏸️ Pausado");
+}
+async function toggleSession(){
+  if(!sessionActive){
+    sessionActive=true; paused=false;
+    if(finished){ finished=false; idx=0; renderVisual(); }
+    const ok=await ensureAudio();
+    if(!ok){ setFeedback("Preciso da permissão do microfone 🎤","warn"); paused=true; setMic("paused","🎤","Tocar aqui"); sessionActive=true; return; }
+    beginTurn(); return;
+  }
+  if(paused){ paused=false; if(audioCtx&&audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} } beginTurn(); }
+  else doPause();
+}
+
+/* ---------- CARTÃO: tocar para ouvir a palavra ---------- */
 function sayCurrent(){
   const it=current.items[idx];
-  speak(it.say);
+  stopListeningSilently();
   cardEl.classList.remove("pop"); void cardEl.offsetWidth; cardEl.classList.add("pop");
+  speakThen(it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
 }
-function go(d){ const n=idx+d; if(n<0||n>=current.items.length) return; idx=n; render(true); }
-function goHome(){ speechSynthesis.cancel(); stopIfRecording(); gameEl.classList.add("hidden"); menuEl.classList.remove("hidden"); }
-
-function setStatus(t){ statusEl.textContent=t||""; }
-function setFeedback(t, cls){ feedbackEl.textContent=t||""; feedbackEl.className="feedback"+(cls?(" "+cls):""); }
 
 /* estrelinhas de recompensa */
 function sprinkleStars(){
@@ -735,83 +932,36 @@ function isMatch(heard, target){
   if(!h||!t) return false;
   if(h.includes(t)||t.includes(h)) return true;
   const ratio=1-lev(h,t)/Math.max(h.length,t.length);
-  return ratio>=0.6; /* tolerante — fala infantil */
-}
-
-/* ---------- GRAVAÇÃO DO MICROFONE ---------- */
-let mediaRecorder=null, chunks=[], recording=false, recTimer=null;
-function toggleRecording(){ if(recording) stopRecording(); else startRecording(); }
-function stopIfRecording(){ if(recording) stopRecording(); }
-async function startRecording(){
-  if(!apiKey){ setFeedback("Adicione sua chave da OpenAI no menu 🔑","warn"); speak("Preciso da chave para poder ouvir."); return; }
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setFeedback("Este navegador não permite usar o microfone.","warn"); return; }
-  speechSynthesis.cancel();
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    chunks=[]; mediaRecorder=new MediaRecorder(stream);
-    mediaRecorder.ondataavailable=e=>{ if(e.data&&e.data.size>0) chunks.push(e.data); };
-    mediaRecorder.onstop=async ()=>{ stream.getTracks().forEach(t=>t.stop()); await processAudio(); };
-    mediaRecorder.start(); recording=true;
-    micBtn.classList.add("rec"); micBtn.querySelector(".mic-lbl").textContent="Parar";
-    setStatus("🎤 Ouvindo... toque para parar"); setFeedback("");
-    recTimer=setTimeout(()=>{ if(recording) stopRecording(); }, 5000);
-  }catch(err){
-    setFeedback("Não consegui acessar o microfone. Autorize o uso no navegador.","warn");
-  }
-}
-function stopRecording(){
-  if(mediaRecorder && recording){
-    recording=false; micBtn.classList.remove("rec"); micBtn.querySelector(".mic-lbl").textContent="Falar";
-    clearTimeout(recTimer); setStatus("🧠 Pensando...");
-    try{ mediaRecorder.stop(); }catch(e){}
-  }
-}
-
-async function processAudio(){
-  try{
-    const blob=new Blob(chunks, {type:(mediaRecorder&&mediaRecorder.mimeType)||"audio/webm"});
-    if(!blob.size){ setStatus(""); setFeedback("Não ouvi nada. Vamos tentar de novo? 🎤","try"); return; }
-    const it=current.items[idx];
-    const heard=await transcribe(blob, it.say);
-    const ok=isMatch(heard, it.say);
-    setStatus(heard ? ("Você disse: “"+heard+"”") : "Não deu para entender bem.");
-    const msg=await getFeedback(ok, it.word||it.say, heard);
-    if(ok){
-      setFeedback("✅ "+msg, "ok"); sprinkleStars();
-      speak(msg, ()=>{ setTimeout(()=>{ if(idx<current.items.length-1) go(1); }, 700); });
-    }else{
-      setFeedback("💪 "+msg, "try");
-      speak(msg, ()=>{ speak(it.say); });
-    }
-  }catch(err){
-    setStatus("");
-    setFeedback("⚠️ "+((err&&err.message)||"Algo deu errado."), "warn");
-  }
+  return ratio>=0.6;
 }
 
 /* ---------- OPENAI ---------- */
+async function fetchT(url, opts, ms){
+  const c=new AbortController(); const t=setTimeout(()=>c.abort(), ms||20000);
+  try{ return await fetch(url, Object.assign({}, opts, {signal:c.signal})); }
+  finally{ clearTimeout(t); }
+}
 async function apiErr(r, ctx){
-  let detail="";
-  try{ const j=await r.json(); detail=(j.error&&j.error.message)||""; }catch(e){}
+  let detail=""; try{ const j=await r.json(); detail=(j.error&&j.error.message)||""; }catch(e){}
   if(r.status===401) return "Chave da OpenAI inválida. Confira no menu 🔑";
   if(r.status===429) return "Limite ou créditos da OpenAI atingidos.";
   return "Falha na "+ctx+" ("+r.status+"). "+detail;
 }
-async function transcribe(blob, hint){
+async function transcribe(blob, hint, type){
+  const fname=/mp4|m4a|aac/.test(type||"")?"audio.mp4":(/ogg/.test(type||"")?"audio.ogg":"audio.webm");
   const fd=new FormData();
-  fd.append("file", blob, "audio.webm");
+  fd.append("file", blob, fname);
   fd.append("model", "whisper-1");
   fd.append("language", "pt");
-  if(hint) fd.append("prompt", hint); /* ajuda a reconhecer a palavra-alvo */
-  const r=await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method:"POST", headers:{ "Authorization":"Bearer "+apiKey }, body:fd
-  });
+  if(hint) fd.append("prompt", hint);
+  let r;
+  try{ r=await fetchT("https://api.openai.com/v1/audio/transcriptions",{ method:"POST", headers:{ "Authorization":"Bearer "+apiKey }, body:fd }, 25000); }
+  catch(e){ throw new Error("A internet demorou demais. Tente de novo."); }
   if(!r.ok) throw new Error(await apiErr(r,"transcrição"));
   const j=await r.json();
   return (j.text||"").trim();
 }
 async function getFeedback(ok, target, heard){
-  /* tenta uma resposta da IA; se falhar, usa frases prontas e gentis */
   try{
     const sys="Você é uma fonoaudióloga muito carinhosa ajudando uma criança autista a aprender a falar português do Brasil. Responda com UMA frase curta (no máximo 12 palavras), simples, calorosa e positiva. Nunca repreenda. Se a criança acertou, comemore com alegria. Se errou, incentive a tentar de novo com carinho.";
     const quem = childName ? (" Chame a criança de "+childName+".") : "";
@@ -819,18 +969,17 @@ async function getFeedback(ok, target, heard){
       ? ("A criança falou corretamente a palavra “"+target+"”.")
       : ("A palavra certa é “"+target+"”. A criança tentou e falou “"+(heard||"algo que não deu para entender")+"”."))
       + " Fale diretamente com a criança." + quem;
-    const r=await fetch("https://api.openai.com/v1/chat/completions", {
+    const r=await fetchT("https://api.openai.com/v1/chat/completions", {
       method:"POST",
       headers:{ "Authorization":"Bearer "+apiKey, "Content-Type":"application/json" },
       body:JSON.stringify({ model:"gpt-4o-mini", messages:[{role:"system",content:sys},{role:"user",content:usr}], max_tokens:40, temperature:0.7 })
-    });
+    }, 15000);
     if(r.ok){
       const j=await r.json();
       const t=j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
       if(t) return t.trim().replace(/^["“']|["”']$/g,"");
     }
   }catch(e){}
-  /* fallback local */
   const nome=childName?(", "+childName):"";
   const okMsgs=["Isso mesmo"+nome+"! Muito bem!","Perfeito"+nome+"! Você conseguiu!","Boa"+nome+"! Mandou muito bem!","Uhu! Acertou"+nome+"!"];
   const noMsgs=["Quase"+nome+"! Vamos tentar de novo.","Boa tentativa"+nome+"! Escuta e repete comigo.","Está chegando perto"+nome+"! Tenta mais uma vez.","Vamos juntos"+nome+"! Ouça de novo."];
@@ -842,15 +991,15 @@ async function getFeedback(ok, target, heard){
 document.querySelectorAll(".menu-card").forEach(b=>b.addEventListener("click", ()=>openCategory(b.dataset.cat)));
 document.getElementById("homeBtn").addEventListener("click", goHome);
 cardEl.addEventListener("click", sayCurrent);
-cardEl.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") sayCurrent(); });
+cardEl.addEventListener("keydown", e=>{ if(e.key==="Enter") sayCurrent(); });
 prevBtn.addEventListener("click", ()=>go(-1));
 nextBtn.addEventListener("click", ()=>go(1));
-micBtn.addEventListener("click", toggleRecording);
+micBtn.addEventListener("click", toggleSession);
 document.addEventListener("keydown", e=>{
   if(gameEl.classList.contains("hidden")) return;
   if(e.key==="ArrowRight") go(1);
   if(e.key==="ArrowLeft") go(-1);
-  if(e.key===" "){ e.preventDefault(); toggleRecording(); }
+  if(e.key===" "){ e.preventDefault(); toggleSession(); }
   if(e.key==="Escape") goHome();
 });
 
