@@ -699,6 +699,20 @@ let sessionActive=false, paused=false, finished=false;
 let listening=false, processing=false, suppress=false, pendingProcess=false;
 let audioStream=null, audioCtx=null, analyser=null, vadBuf=null, vadTimer=null;
 let mediaRecorder=null, chunks=[];
+let wantListen=false, starting=false, listenWatchdog=null;
+
+/* vigia: GARANTE que a escuta ligue quando é para ligar (após a IA falar),
+   mesmo se algum callback de fala falhar no navegador */
+function startWatchdog(){
+  clearInterval(listenWatchdog);
+  listenWatchdog=setInterval(()=>{
+    if(!sessionActive||paused||listening||processing||starting) return;
+    if(!wantListen) return;
+    if(window.speechSynthesis && speechSynthesis.speaking) return; /* espera a IA terminar de falar */
+    startListening();
+  }, 400);
+}
+function stopWatchdog(){ clearInterval(listenWatchdog); }
 
 function setStatus(t){ statusEl.textContent=t||""; }
 function setFeedback(t, cls){ feedbackEl.textContent=t||""; feedbackEl.className="feedback"+(cls?(" "+cls):""); }
@@ -746,6 +760,7 @@ async function openCategory(cat){
     setFeedback("Autorize o microfone e toque no botão para começar 🎤","warn");
     return;
   }
+  startWatchdog();
   beginTurn();
 }
 function renderVisual(){
@@ -766,7 +781,8 @@ function go(d){
 }
 function goHome(){ endSessionCleanup(); releaseAudio(); gameEl.classList.add("hidden"); menuEl.classList.remove("hidden"); }
 function endSessionCleanup(){
-  sessionActive=false; listening=false; processing=false;
+  sessionActive=false; listening=false; processing=false; wantListen=false;
+  stopWatchdog();
   clearInterval(vadTimer);
   try{ if(mediaRecorder && mediaRecorder.state!=="inactive"){ suppress=true; mediaRecorder.stop(); } }catch(e){}
   speechSynthesis.cancel();
@@ -780,23 +796,27 @@ function beginTurn(){
   if(!sessionActive||paused) return;
   const it=current.items[idx];
   setMic("speaking","🗣️","Ouça...");
+  wantListen=true; /* o vigia garante a escuta após a fala */
   speakThen("Diga: "+it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
 }
 
 async function startListening(){
-  if(!sessionActive||paused) return;
+  if(!sessionActive||paused||listening||starting) return;
   if(!apiKey){ setFeedback("Adicione sua chave da OpenAI no menu 🔑","warn"); doPause(); return; }
+  starting=true;
   const ok=await ensureAudio();
-  if(!ok){ setFeedback("Preciso da permissão do microfone 🎤","warn"); doPause(); return; }
+  if(!ok){ starting=false; setFeedback("Preciso da permissão do microfone 🎤","warn"); doPause(); return; }
+  if(!sessionActive||paused){ starting=false; return; }
   chunks=[]; suppress=false; pendingProcess=false; processing=false; listening=true;
   try{ mediaRecorder=new MediaRecorder(audioStream); }
-  catch(e){ setFeedback("Microfone indisponível neste navegador.","warn"); doPause(); return; }
+  catch(e){ starting=false; listening=false; setFeedback("Microfone indisponível neste navegador.","warn"); doPause(); return; }
   mediaRecorder.ondataavailable=e=>{ if(e.data&&e.data.size>0) chunks.push(e.data); };
   mediaRecorder.onstop=()=>{
     if(suppress){ suppress=false; return; }
     if(pendingProcess) processAudio(); else afterNoSpeech();
   };
-  try{ mediaRecorder.start(); }catch(e){ setFeedback("Não consegui gravar.","warn"); doPause(); return; }
+  try{ mediaRecorder.start(); }catch(e){ starting=false; listening=false; setFeedback("Não consegui gravar.","warn"); doPause(); return; }
+  wantListen=false; starting=false;
   setMic("listening","🎧","Pode falar!");
   setStatus("Estou te ouvindo...");
   runVad();
@@ -849,6 +869,7 @@ function afterNoSpeech(){
   if(!sessionActive||paused) return;
   noSpeechCount++;
   const it=current.items[idx];
+  wantListen=true;
   if(noSpeechCount<2){
     /* volta a ouvir em silêncio, sem reperguntar (menos repetitivo) */
     startListening();
@@ -881,7 +902,8 @@ async function processAudio(){
       });
     }else{
       setFeedback("💪 "+msg,"try"); setMic("speaking","🗣️","Escuta...");
-      speakThen(msg, ()=>{ speakThen(it.say, ()=>{ if(sessionActive&&!paused) startListening(); }); });
+      wantListen=true; /* fala tudo numa vez e o vigia garante a escuta */
+      speakThen(msg+" "+it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
     }
   }catch(err){
     setStatus("");
@@ -890,7 +912,7 @@ async function processAudio(){
   }
 }
 function finishCategory(){
-  finished=true; sessionActive=false;
+  finished=true; sessionActive=false; wantListen=false; stopWatchdog();
   setMic("paused","🏆","Jogar de novo");
   setFeedback("🎉 Você terminou! Muito bem!","ok"); setStatus("");
   speak(childName?("Muito bem, "+childName+"! Você conseguiu!"):"Muito bem! Você conseguiu!");
@@ -898,7 +920,7 @@ function finishCategory(){
 
 /* ---------- PAUSAR / CONTINUAR (botão grande) ---------- */
 function doPause(){
-  paused=true; listening=false; clearInterval(vadTimer);
+  paused=true; listening=false; wantListen=false; starting=false; clearInterval(vadTimer);
   try{ if(mediaRecorder && mediaRecorder.state!=="inactive"){ suppress=true; mediaRecorder.stop(); } }catch(e){}
   speechSynthesis.cancel();
   setMic("paused","▶️","Continuar"); setStatus("⏸️ Pausado");
@@ -909,9 +931,9 @@ async function toggleSession(){
     if(finished){ finished=false; idx=0; renderVisual(); }
     const ok=await ensureAudio();
     if(!ok){ setFeedback("Preciso da permissão do microfone 🎤","warn"); paused=true; setMic("paused","🎤","Tocar aqui"); sessionActive=true; return; }
-    beginTurn(); return;
+    startWatchdog(); beginTurn(); return;
   }
-  if(paused){ paused=false; if(audioCtx&&audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} } beginTurn(); }
+  if(paused){ paused=false; if(audioCtx&&audioCtx.state==="suspended"){ try{ await audioCtx.resume(); }catch(e){} } startWatchdog(); beginTurn(); }
   else doPause();
 }
 
@@ -920,6 +942,7 @@ function sayCurrent(){
   const it=current.items[idx];
   stopListeningSilently();
   cardEl.classList.remove("pop"); void cardEl.offsetWidth; cardEl.classList.add("pop");
+  if(sessionActive&&!paused) wantListen=true;
   speakThen(it.say, ()=>{ if(sessionActive&&!paused) startListening(); });
 }
 
