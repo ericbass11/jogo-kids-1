@@ -144,13 +144,14 @@
   }
   .nav-btn:active{transform:scale(.9)}
   .nav-btn:disabled{opacity:.35;cursor:default}
-  .listen-btn{
-    background:var(--accent);color:#fff;border:none;border-radius:30px;box-shadow:var(--shadow);
-    padding:clamp(16px,4vw,22px) clamp(24px,7vw,44px);
-    font-size:clamp(18px,4.6vw,24px);font-weight:800;cursor:pointer;
-    display:flex;align-items:center;gap:10px;transition:transform .12s;
+  /* botão AVANÇAR — maior e colorido, bem destacado */
+  .next-btn{
+    background:var(--accent);color:#fff;
+    width:clamp(96px,26vw,132px);height:clamp(96px,26vw,132px);
+    border-radius:34px;font-size:clamp(44px,11vw,60px);
+    box-shadow:0 10px 26px rgba(123,181,176,.45);
   }
-  .listen-btn:active{transform:scale(.93)}
+  .next-btn:disabled{opacity:.35}
 
   /* ---------- ESTRELINHAS ---------- */
   .star{position:fixed;font-size:34px;pointer-events:none;z-index:50;animation:rise 1s ease forwards}
@@ -240,8 +241,7 @@
 
     <div class="controls">
       <button class="nav-btn" id="prevBtn" aria-label="Anterior">◀️</button>
-      <button class="listen-btn" id="listenBtn">🔊 Ouvir</button>
-      <button class="nav-btn" id="nextBtn" aria-label="Próximo">▶️</button>
+      <button class="nav-btn next-btn" id="nextBtn" aria-label="Próximo">▶️</button>
     </div>
   </div>
 </section>
@@ -743,7 +743,6 @@ if(voiceTestBtn){
   });
 }
 document.getElementById("homeBtn").addEventListener("click", goHome);
-document.getElementById("listenBtn").addEventListener("click", sayCurrent);
 cardEl.addEventListener("click", sayCurrent);
 cardEl.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") sayCurrent(); });
 prevBtn.addEventListener("click", ()=>go(-1));
